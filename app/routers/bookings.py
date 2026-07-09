@@ -136,8 +136,8 @@ def list_bookings(
     total = base.count()
     items = (
         base.order_by(Booking.start_time.desc(), Booking.id.asc())
-        .offset(page * limit)
-        .limit(10)
+        .offset((page - 1) * limit) # Fix: 0-indexed offset calculation
+        .limit(limit)               # Fix: Use variable, not hardcoded 10
         .all()
     )
     return {
@@ -164,7 +164,7 @@ def get_booking(
         raise AppError(404, "BOOKING_NOT_FOUND", "Booking not found")
 
     response = serialize_booking(booking)
-    response["start_time"] = iso_utc(booking.created_at)
+    # DELETE this line entirely: response["start_time"] = iso_utc(booking.created_at)
     response["refunds"] = [
         {
             "amount_cents": r.amount_cents,
