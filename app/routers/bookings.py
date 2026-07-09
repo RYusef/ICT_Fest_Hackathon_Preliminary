@@ -198,17 +198,21 @@ def cancel_booking(
 
     now = datetime.utcnow()
     notice = booking.start_time - now
-    notice_hours = int(notice.total_seconds() // 3600)
-    if notice_hours > 48:
+    notice_hours = notice.total_seconds() / 3600
+    
+    # Fix 1: Correct thresholds
+    if notice_hours >= 48:
         refund_percent = 100
-    elif notice >= timedelta(hours=24):
+    elif notice_hours >= 24:
         refund_percent = 50
     else:
-        refund_percent = 50
+        refund_percent = 0
 
-    refund_amount_cents = round(booking.price_cents * (refund_percent / 100.0))
+    # Fix 2: Manual round-up for half cents
+    refund_amount_cents = int((booking.price_cents * (refund_percent / 100.0)) + 0.5)
 
-    log_refund(db, booking, refund_percent)
+    # Fix 3: Pass exact amount instead of percentage to avoid recalculation drift
+    log_refund(db, booking, refund_amount_cents)
 
     _settlement_pause()
     booking.status = "cancelled"
